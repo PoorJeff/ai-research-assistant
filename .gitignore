@@ -13,6 +13,7 @@ venv/
 !.env.example
 data/papers/*.pdf
 data/papers/*.txt
+data/papers/*.csv
 vectorstore/*
 !vectorstore/.gitkeep
 reports/generated/

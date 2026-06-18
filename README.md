@@ -1,98 +1,217 @@
 # AI Research Assistant
 
-AI Research Assistant is a local-first academic paper assistant for literature search, PDF ingestion, structured summarisation, paper comparison, and retrieval-augmented question answering with citations.
+Local-first literature search, PDF ingestion, paper summarisation, paper comparison, and retrieval-augmented question answering with citation-backed evidence.
 
-The project is designed as a portfolio-quality AI application: it shows the full RAG pipeline instead of only wrapping a chat API.
+This project is built as a portfolio-grade AI application rather than a thin chat wrapper. It demonstrates the core pieces of an academic RAG system: PDF processing, chunking, embeddings, vector search, prompt design, evidence-grounded generation, and lightweight evaluation.
 
-## Why This Project Matters
+## Highlights
 
-Modern AI and data science work often starts with reading papers. This project demonstrates practical skills across LLM applications, information retrieval, PDF processing, embeddings, vector databases, evaluation, and user-facing demo design.
-
-## Features
-
-- Search arXiv and save paper metadata.
-- Upload local PDFs and extract page-aware text.
-- Clean and chunk paper text with source metadata.
-- Build an in-memory or ChromaDB vector index.
-- Ask questions against indexed papers.
-- Return answers with evidence and confidence.
+- Search arXiv papers and export metadata to CSV.
+- Upload research PDFs and extract page-aware text with PyMuPDF.
+- Clean and chunk paper text while preserving source metadata.
+- Build a local vector index with ChromaDB or an in-memory store.
+- Ask questions against indexed papers with evidence and confidence.
 - Generate structured paper summaries.
 - Compare multiple papers in a Markdown table.
-- Run lightweight retrieval and citation checks.
+- Evaluate retrieval with Recall@k and answer citation checks.
+- Run without an API key using the deterministic mock provider.
+- Switch to Ollama or an OpenAI-compatible API for stronger generation.
+
+## Screenshots
+
+### arXiv Search
+
+![Search papers](docs/assets/screenshots/search-papers.png)
+
+### PDF Upload And Sample Indexing
+
+![Upload and sample demo](docs/assets/screenshots/upload-sample-demo.png)
+
+### Evidence-Based RAG Answer
+
+![RAG answer](docs/assets/screenshots/rag-answer.png)
+
+## Quick Start
+
+### Windows PowerShell
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -e ".[dev]"
+python -m streamlit run app/streamlit_app.py
+```
+
+### macOS / Linux
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -e ".[dev]"
+python -m streamlit run app/streamlit_app.py
+```
+
+Open the app at:
+
+```text
+http://localhost:8501
+```
+
+## One-Minute Demo
+
+1. Open the app.
+2. Go to `Search Papers` and search for `retrieval augmented generation`.
+3. Go to `Upload PDFs` and click `Load sample RAG demo`.
+4. Go to `Ask Questions`.
+5. Click `Answer with evidence`.
+6. Inspect the `Answer`, `Evidence`, `Confidence`, and retrieved chunks.
+
+The built-in sample demo uses a tiny in-memory index so the RAG flow can be tested before uploading real PDFs.
 
 ## System Architecture
 
 ```mermaid
 flowchart LR
-    A["User Query or PDF"] --> B["Paper Search / PDF Upload"]
-    B --> C["Text Extraction"]
-    C --> D["Chunking"]
-    D --> E["Embedding"]
-    E --> F["ChromaDB or In-memory Store"]
-    F --> G["Retrieval"]
-    G --> H["LLM Answer"]
-    H --> I["Evidence-based Response"]
+    A["User Query / PDF / arXiv Topic"] --> B["Search or Upload"]
+    B --> C["PDF Text Extraction"]
+    C --> D["Text Cleaning"]
+    D --> E["Chunking with Metadata"]
+    E --> F["Embeddings"]
+    F --> G["ChromaDB / In-memory Store"]
+    G --> H["Top-k Retrieval"]
+    H --> I["Evidence-Bound Prompt"]
+    I --> J["Answer + Evidence + Confidence"]
 ```
 
-## Tech Stack
+## Pipeline
 
-- Python
-- Streamlit
-- PyMuPDF
-- arXiv API
-- pandas
-- sentence-transformers
-- ChromaDB
-- pytest
-- Ollama or OpenAI-compatible API providers
+1. `arxiv_search.py` queries arXiv and normalizes paper metadata.
+2. `pdf_loader.py` extracts page-level text from uploaded PDFs.
+3. `text_cleaning.py` normalizes PDF text artifacts.
+4. `chunking.py` splits text into overlapping source-aware chunks.
+5. `embeddings.py` creates sentence-transformer or hash embeddings.
+6. `vector_store.py` stores and retrieves chunks with ChromaDB or memory.
+7. `rag_pipeline.py` retrieves top-k chunks and builds evidence-backed answers.
+8. `summarizer.py` and `paper_compare.py` produce structured research outputs.
+9. `evaluation.py` supports Recall@k and citation-presence checks.
 
-## How To Run Locally
+## Project Structure
 
-```bash
-python -m venv .venv
-.venv\Scripts\activate
-python -m pip install -e ".[dev]"
-python -m streamlit run app/streamlit_app.py
+```text
+ai-research-assistant/
+├── app/
+│   └── streamlit_app.py
+├── src/
+│   ├── arxiv_search.py
+│   ├── chunking.py
+│   ├── config.py
+│   ├── demo_data.py
+│   ├── embeddings.py
+│   ├── evaluation.py
+│   ├── llm_client.py
+│   ├── models.py
+│   ├── paper_compare.py
+│   ├── pdf_loader.py
+│   ├── prompts.py
+│   ├── rag_pipeline.py
+│   ├── summarizer.py
+│   ├── text_cleaning.py
+│   └── vector_store.py
+├── docs/
+│   ├── model_card.md
+│   ├── prompt_design.md
+│   └── system_design.md
+├── reports/
+│   ├── demo_queries.md
+│   ├── evaluation_report.md
+│   └── system_limitations.md
+└── tests/
 ```
 
-The default LLM provider is `mock`, so the app can start without an API key. Copy `.env.example` and set environment variables to use Ollama or an OpenAI-compatible API.
+## Model Configuration
 
-The Streamlit sidebar defaults to `SentenceTransformer + Chroma` for the real local RAG workflow. For a quick setup smoke test on a low-resource machine, switch the sidebar to `Hash demo + In-memory`.
+The default `.env.example` configuration is API-free:
 
-## Example Queries
+```text
+AI_RA_LLM_PROVIDER=mock
+AI_RA_EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
+AI_RA_CHROMA_PATH=vectorstore
+```
 
-- What problem does retrieval-augmented generation solve?
-- What limitations do the papers report about retrieval quality?
-- Which evaluation metrics are used for retrieval performance?
-- How do the indexed papers handle evidence or citations?
+Supported LLM providers:
 
-More examples are in `reports/demo_queries.md`.
+- `mock`: deterministic offline responses for tests and demos.
+- `ollama`: local model serving through Ollama.
+- `openai_compatible`: any API with an OpenAI-style `/chat/completions` endpoint.
+
+The Streamlit sidebar defaults to `SentenceTransformer + Chroma` for the real local RAG workflow. For quick setup checks, use `Hash demo + In-memory`.
+
+## Answer Format
+
+RAG answers follow a fixed evidence contract:
+
+```text
+Answer:
+...
+
+Evidence:
+[1] Paper title, page/chunk, source
+[2] Paper title, page/chunk, source
+
+Confidence:
+High / Medium / Low
+```
+
+If retrieved context is insufficient, the system returns a low-confidence insufficient-evidence answer instead of inventing a conclusion.
 
 ## Evaluation
 
-The project includes lightweight evaluation helpers:
+The MVP includes lightweight evaluation helpers for:
 
-- `Recall@k` for retrieval checks.
-- citation presence checks for generated answers.
-- insufficient-evidence behavior checks.
+- `Recall@k` retrieval checks.
+- Citation presence in generated answers.
+- Insufficient-evidence behavior when retrieval returns no useful chunks.
 
-See `reports/evaluation_report.md`.
+Demo questions live in `reports/demo_queries.md`. The evaluation method is documented in `reports/evaluation_report.md`.
+
+## Tests
+
+```bash
+python -m pytest -v
+python -m compileall src app
+```
+
+Current coverage focuses on:
+
+- config defaults,
+- arXiv metadata conversion,
+- PDF loading,
+- chunking and overlap,
+- vector retrieval,
+- prompt and LLM client behavior,
+- RAG answer evidence formatting,
+- evaluation helpers,
+- built-in demo data,
+- Streamlit syntax smoke checks.
 
 ## Limitations
 
-- Scanned PDFs need OCR, which is outside the MVP.
-- Word-based chunking is clear and testable but not tokenizer-aware.
+- Scanned PDFs require OCR, which is outside the MVP.
+- Word-based chunking is transparent and testable but not tokenizer-aware.
 - Retrieval quality depends on the embedding model and indexed paper set.
-- The system can only answer from uploaded and indexed papers.
+- The app can only answer from uploaded and indexed content.
+- The mock LLM is useful for testing but not a replacement for a real reasoning model.
 
 ## Future Work
 
-- Semantic Scholar integration.
-- BibTeX or Zotero export.
-- Citation graph visualization.
-- Docker packaging.
-- Multi-embedding evaluation.
+- Add OCR support for scanned papers.
+- Add Semantic Scholar metadata.
+- Add BibTeX or Zotero export.
+- Add citation graph exploration.
+- Add Docker packaging.
+- Add richer retrieval and answer-quality evaluation.
+- Add screenshots and metrics from a larger real-paper benchmark.
 
 ## CV Description
 
-Built an AI research assistant for literature search, PDF parsing, structured paper summarisation, multi-paper comparison, and retrieval-augmented question answering. Implemented chunking, embedding, ChromaDB-based retrieval, and evidence-grounded answer generation, with evaluation using Recall@k and manually curated research questions.
+Built an AI research assistant for literature search, PDF parsing, structured paper summarisation, multi-paper comparison, and retrieval-augmented question answering. Implemented chunking, embedding, ChromaDB-based retrieval, evidence-grounded answer generation, and lightweight evaluation with Recall@k and manually curated research questions.

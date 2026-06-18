@@ -9,6 +9,7 @@ import streamlit as st
 from src.arxiv_search import papers_to_dataframe, save_metadata_csv, search_arxiv
 from src.chunking import chunk_pages
 from src.config import Settings
+from src.demo_data import build_sample_demo_store
 from src.embeddings import HashEmbeddingModel, SentenceTransformerEmbeddingModel
 from src.evaluation import answer_has_citations, compute_recall_at_k
 from src.llm_client import create_llm_client
@@ -114,6 +115,13 @@ def render_search_page() -> None:
 
 def render_upload_page(settings: Settings, embedding_backend: str, store_backend: str) -> None:
     st.subheader("Upload PDFs")
+    st.write("Load a tiny built-in sample when you want to test the RAG flow before uploading papers.")
+    if st.button("Load sample RAG demo"):
+        store, chunks = build_sample_demo_store()
+        st.session_state.chunks = chunks
+        st.session_state.vector_store = store
+        st.success("Loaded sample chunks and built a fast in-memory demo index.")
+
     uploaded_files = st.file_uploader("Upload one or more research PDFs", type=["pdf"], accept_multiple_files=True)
     col_a, col_b = st.columns([1, 1])
     with col_a:
