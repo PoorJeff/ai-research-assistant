@@ -1,5 +1,10 @@
 # AI Research Assistant
 
+[![CI](https://github.com/PoorJeff/ai-research-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/PoorJeff/ai-research-assistant/actions/workflows/ci.yml)
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
+![Streamlit](https://img.shields.io/badge/UI-Streamlit-red)
+![RAG](https://img.shields.io/badge/RAG-Evidence--grounded-green)
+
 Local-first literature search, PDF ingestion, paper summarisation, paper comparison, and retrieval-augmented question answering with citation-backed evidence.
 
 This project is built as a portfolio-grade AI application rather than a thin chat wrapper. It demonstrates the core pieces of an academic RAG system: PDF processing, chunking, embeddings, vector search, prompt design, evidence-grounded generation, and lightweight evaluation.
@@ -201,8 +206,11 @@ Demo questions live in `reports/demo_queries.md`. The evaluation method and real
 
 ```bash
 python -m pytest -v
+python -m ruff check .
 python -m compileall src app
 ```
+
+GitHub Actions runs the unit tests, lint, and compile checks on every push and pull request to `main`. The real-paper evaluation is intentionally kept as a manual command because it downloads arXiv PDFs and may download embedding-model weights.
 
 Current coverage focuses on:
 

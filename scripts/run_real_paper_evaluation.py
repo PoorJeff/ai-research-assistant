@@ -2,14 +2,13 @@ from pathlib import Path
 import argparse
 import sys
 
-ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
-
-from src.real_paper_evaluation import run_real_paper_evaluation, write_evaluation_artifacts
-
-
 def main() -> None:
+    root = Path(__file__).resolve().parents[1]
+    if str(root) not in sys.path:
+        sys.path.insert(0, str(root))
+
+    from src.real_paper_evaluation import run_real_paper_evaluation, write_evaluation_artifacts
+
     parser = argparse.ArgumentParser(description="Run real arXiv PDF retrieval evaluation.")
     parser.add_argument(
         "--embedding-backend",
