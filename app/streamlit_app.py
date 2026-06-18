@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from pathlib import Path
 import tempfile
 
@@ -16,6 +17,7 @@ from src.llm_client import create_llm_client
 from src.models import TextChunk
 from src.paper_compare import compare_papers
 from src.pdf_loader import PdfLoadError, load_pdf_pages
+from src.product_metrics import load_real_paper_evaluation, summarize_real_paper_evaluation
 from src.rag_pipeline import RagPipeline
 from src.summarizer import summarize_paper
 from src.vector_store import ChromaVectorStore, InMemoryVectorStore
@@ -31,6 +33,9 @@ def init_state() -> None:
         "vector_store": None,
         "last_answer": None,
         "summaries": {},
+        "library_mode": "empty",
+        "active_embedding_backend": None,
+        "active_store_backend": None,
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -63,6 +68,117 @@ def chunks_for_title(chunks: list[TextChunk], title: str) -> list[TextChunk]:
     return [chunk for chunk in chunks if chunk.metadata.get("paper_title") == title]
 
 
+def reset_workspace_state() -> None:
+    st.session_state.papers = []
+    st.session_state.chunks = []
+    st.session_state.vector_store = None
+    st.session_state.last_answer = None
+    st.session_state.summaries = {}
+    st.session_state.library_mode = "empty"
+    st.session_state.active_embedding_backend = None
+    st.session_state.active_store_backend = None
+
+
+def library_status_label() -> tuple[str, str]:
+    if st.session_state.vector_store is not None:
+        return "Index ready", "success"
+    if st.session_state.chunks:
+        return "Chunks pending index", "warning"
+    return "No library loaded", "info"
+
+
+def render_library_status() -> None:
+    counts = chunk_count_by_title(st.session_state.chunks)
+    status_text, status_level = library_status_label()
+    if status_level == "success":
+        st.success(status_text)
+    elif status_level == "warning":
+        st.warning(status_text)
+    else:
+        st.info(status_text)
+
+    col_a, col_b, col_c, col_d = st.columns(4)
+    col_a.metric("Papers in workspace", len(counts))
+    col_b.metric("Chunks prepared", len(st.session_state.chunks))
+    col_c.metric("Search results", len(st.session_state.papers))
+    col_d.metric("Vector index", "Ready" if st.session_state.vector_store else "Not built")
+
+    if st.session_state.active_embedding_backend or st.session_state.active_store_backend:
+        st.caption(
+            "Active index: "
+            f"{st.session_state.active_embedding_backend or 'unknown embedding'} + "
+            f"{st.session_state.active_store_backend or 'unknown store'}"
+        )
+
+
+def render_real_evaluation_summary(show_tables: bool = False) -> None:
+    report = load_real_paper_evaluation()
+    if report is None:
+        st.info("No real-paper evaluation report found.")
+        return
+
+    summary = summarize_real_paper_evaluation(report)
+    metric_cols = st.columns(5)
+    metric_cols[0].metric("Real papers", summary.paper_count)
+    metric_cols[1].metric("Parsed pages", summary.page_count)
+    metric_cols[2].metric("Indexed chunks", summary.chunk_count)
+    metric_cols[3].metric("Recall@3", f"{summary.average_recall_at_3:.2f}")
+    metric_cols[4].metric(
+        "Citations",
+        f"{summary.citation_coverage_count}/{summary.question_count}",
+    )
+
+    st.caption(
+        "Latest run: "
+        f"{format_timestamp(report.generated_at)} | "
+        f"{report.embedding_backend} | LLM: {report.llm_provider}"
+    )
+
+    if not show_tables:
+        return
+
+    st.dataframe(
+        pd.DataFrame(
+            [
+                {
+                    "paper_id": paper.paper_id,
+                    "title": paper.title,
+                    "pages": paper.pages,
+                    "chunks": paper.chunks,
+                }
+                for paper in report.papers
+            ]
+        ),
+        use_container_width=True,
+        hide_index=True,
+    )
+    st.dataframe(
+        pd.DataFrame(
+            [
+                {
+                    "question": result.question,
+                    "expected": ", ".join(result.expected_paper_ids),
+                    "retrieved_at_3": ", ".join(result.retrieved_paper_ids_at_3),
+                    "recall_at_3": result.recall_at_3,
+                    "recall_at_5": result.recall_at_5,
+                    "citations": result.citation_present,
+                    "confidence": result.confidence,
+                }
+                for result in report.query_results
+            ]
+        ),
+        use_container_width=True,
+        hide_index=True,
+    )
+
+
+def format_timestamp(value: str) -> str:
+    try:
+        return datetime.fromisoformat(value).astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    except ValueError:
+        return value
+
+
 def render_sidebar(settings: Settings) -> tuple[str, str]:
     st.sidebar.header("Runtime")
     st.sidebar.caption("Default settings are local-first and API-free.")
@@ -81,7 +197,27 @@ def render_sidebar(settings: Settings) -> tuple[str, str]:
     st.sidebar.write(f"LLM provider: `{settings.llm_provider}`")
     st.sidebar.write(f"Embedding model: `{settings.embedding_model}`")
     st.sidebar.write(f"Chroma path: `{settings.chroma_path}`")
+    if st.sidebar.button("Reset workspace"):
+        reset_workspace_state()
+        st.rerun()
     return embedding_backend, store_backend
+
+
+def render_overview_page(settings: Settings, embedding_backend: str, store_backend: str) -> None:
+    st.subheader("Overview")
+
+    top_cols = st.columns([2, 1])
+    with top_cols[0]:
+        st.markdown("#### Current library")
+        render_library_status()
+    with top_cols[1]:
+        st.markdown("#### Runtime")
+        st.metric("LLM provider", settings.llm_provider)
+        st.metric("Embedding backend", embedding_backend)
+        st.metric("Vector store", store_backend)
+
+    st.markdown("#### Real-paper benchmark")
+    render_real_evaluation_summary()
 
 
 def render_search_page() -> None:
@@ -120,6 +256,9 @@ def render_upload_page(settings: Settings, embedding_backend: str, store_backend
         store, chunks = build_sample_demo_store()
         st.session_state.chunks = chunks
         st.session_state.vector_store = store
+        st.session_state.library_mode = "sample_demo"
+        st.session_state.active_embedding_backend = "Hash demo"
+        st.session_state.active_store_backend = "In-memory"
         st.success("Loaded sample chunks and built a fast in-memory demo index.")
 
     uploaded_files = st.file_uploader("Upload one or more research PDFs", type=["pdf"], accept_multiple_files=True)
@@ -155,6 +294,11 @@ def render_upload_page(settings: Settings, embedding_backend: str, store_backend
                 temp_path.unlink(missing_ok=True)
 
         st.session_state.chunks.extend(new_chunks)
+        st.session_state.vector_store = None
+        st.session_state.last_answer = None
+        st.session_state.library_mode = "uploaded_chunks"
+        st.session_state.active_embedding_backend = None
+        st.session_state.active_store_backend = None
         st.success(f"Added {len(new_chunks)} chunks. Total chunks: {len(st.session_state.chunks)}.")
 
     if st.button("Build / rebuild vector index", disabled=not st.session_state.chunks):
@@ -162,9 +306,14 @@ def render_upload_page(settings: Settings, embedding_backend: str, store_backend
             store = build_vector_store(settings, embedding_backend, store_backend)
             store.add_chunks(st.session_state.chunks)
             st.session_state.vector_store = store
+            st.session_state.library_mode = "indexed_pdfs"
+            st.session_state.active_embedding_backend = embedding_backend
+            st.session_state.active_store_backend = store_backend
             st.success(f"Indexed {len(st.session_state.chunks)} chunks with {store_backend}.")
         except Exception as exc:
             st.error(f"Indexing failed: {exc}")
+
+    render_library_status()
 
     counts = chunk_count_by_title(st.session_state.chunks)
     if counts:
@@ -178,6 +327,14 @@ def render_upload_page(settings: Settings, embedding_backend: str, store_backend
 
 def render_ask_page(settings: Settings) -> None:
     st.subheader("Ask Questions")
+    status_text, status_level = library_status_label()
+    if status_level == "success":
+        st.success(status_text)
+    elif status_level == "warning":
+        st.warning(status_text)
+    else:
+        st.info(status_text)
+
     question = st.text_input("Question", value="What problem does retrieval augmented generation solve?")
     top_k = st.slider("Retrieved chunks", 1, 10, 5)
 
@@ -235,7 +392,10 @@ def render_compare_page(settings: Settings) -> None:
 
 def render_evaluation_page() -> None:
     st.subheader("Evaluation")
-    st.write("Use this page for lightweight checks after indexing a paper set.")
+    st.markdown("#### Latest real-paper run")
+    render_real_evaluation_summary(show_tables=True)
+
+    st.markdown("#### Manual retrieval check")
     st.markdown(
         """
 1. Run the demo questions from `reports/demo_queries.md`.
@@ -267,16 +427,18 @@ def main() -> None:
     st.title("AI Research Assistant")
     st.caption("Literature search, PDF ingestion, local vector retrieval, and evidence-based RAG Q&A.")
 
-    tabs = st.tabs(["Search Papers", "Upload PDFs", "Ask Questions", "Compare Papers", "Evaluation"])
+    tabs = st.tabs(["Overview", "Search Papers", "Upload PDFs", "Ask Questions", "Compare Papers", "Evaluation"])
     with tabs[0]:
-        render_search_page()
+        render_overview_page(settings, embedding_backend, store_backend)
     with tabs[1]:
-        render_upload_page(settings, embedding_backend, store_backend)
+        render_search_page()
     with tabs[2]:
-        render_ask_page(settings)
+        render_upload_page(settings, embedding_backend, store_backend)
     with tabs[3]:
-        render_compare_page(settings)
+        render_ask_page(settings)
     with tabs[4]:
+        render_compare_page(settings)
+    with tabs[5]:
         render_evaluation_page()
 
 

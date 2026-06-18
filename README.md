@@ -11,6 +11,7 @@ This project is built as a portfolio-grade AI application rather than a thin cha
 
 ## Highlights
 
+- Product overview dashboard with runtime, index, and benchmark status.
 - Search arXiv papers and export metadata to CSV.
 - Upload research PDFs and extract page-aware text with PyMuPDF.
 - Clean and chunk paper text while preserving source metadata.
@@ -22,7 +23,25 @@ This project is built as a portfolio-grade AI application rather than a thin cha
 - Run without an API key using the deterministic mock provider.
 - Switch to Ollama or an OpenAI-compatible API for stronger generation.
 
+## Product Snapshot
+
+This is best read as a strong local-first research workflow and portfolio project, not a hosted multi-user SaaS product.
+
+| dimension | score | note |
+| --- | ---: | --- |
+| Portfolio readiness | 89/100 | Complete pipeline, tests, CI, screenshots, and reproducible real-paper evaluation. |
+| End-user product readiness | 76/100 | Useful local workflow with clearer status and benchmark visibility; still needs OCR, account-free packaging, and richer answer-quality evaluation. |
+| Technical depth | 90/100 | Modular RAG architecture with page-aware chunks, swappable embeddings, vector stores, and LLM providers. |
+
+The product polish added on top of the MVP focuses on the first-run experience: the app opens on an Overview page that exposes the active library state, runtime configuration, and latest real-paper benchmark before the user starts searching or uploading PDFs.
+
 ## Screenshots
+
+### Overview Dashboard
+
+The app opens with current workspace status and the latest real-paper evaluation metrics.
+
+![Overview dashboard](docs/assets/screenshots/overview-dashboard.png)
 
 ### arXiv Search
 
@@ -117,6 +136,7 @@ ai-research-assistant/
 │   ├── models.py
 │   ├── paper_compare.py
 │   ├── pdf_loader.py
+│   ├── product_metrics.py
 │   ├── prompts.py
 │   ├── rag_pipeline.py
 │   ├── summarizer.py
@@ -129,6 +149,8 @@ ai-research-assistant/
 ├── reports/
 │   ├── demo_queries.md
 │   ├── evaluation_report.md
+│   ├── product_review.md
+│   ├── real_paper_evaluation.md
 │   └── system_limitations.md
 └── tests/
 ```
@@ -207,7 +229,7 @@ Demo questions live in `reports/demo_queries.md`. The evaluation method and real
 ```bash
 python -m pytest -v
 python -m ruff check .
-python -m compileall src app
+python -m compileall src app scripts
 ```
 
 GitHub Actions runs the unit tests, lint, and compile checks on every push and pull request to `main`. The real-paper evaluation is intentionally kept as a manual command because it downloads arXiv PDFs and may download embedding-model weights.
