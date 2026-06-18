@@ -1,0 +1,168 @@
+{
+  "generated_at": "2026-06-18T08:38:54.212949+00:00",
+  "embedding_backend": "sentence-transformers/all-MiniLM-L6-v2",
+  "llm_provider": "mock",
+  "papers": [
+    {
+      "paper_id": "2005.11401",
+      "title": "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks",
+      "pdf_url": "https://arxiv.org/pdf/2005.11401v4",
+      "pages": 19,
+      "chunks": 20
+    },
+    {
+      "paper_id": "2404.16130",
+      "title": "From Local to Global: A Graph RAG Approach to Query-Focused Summarization",
+      "pdf_url": "https://arxiv.org/pdf/2404.16130v2",
+      "pages": 26,
+      "chunks": 31
+    },
+    {
+      "paper_id": "2309.15217",
+      "title": "Ragas: Automated Evaluation of Retrieval Augmented Generation",
+      "pdf_url": "https://arxiv.org/pdf/2309.15217v2",
+      "pages": 8,
+      "chunks": 10
+    }
+  ],
+  "query_results": [
+    {
+      "question": "What is the main idea behind retrieval augmented generation?",
+      "expected_paper_ids": [
+        "2005.11401"
+      ],
+      "retrieved_paper_ids_at_3": [
+        "2309.15217",
+        "2404.16130",
+        "2005.11401"
+      ],
+      "retrieved_paper_ids_at_5": [
+        "2309.15217",
+        "2404.16130",
+        "2005.11401",
+        "2309.15217",
+        "2404.16130"
+      ],
+      "recall_at_3": 1.0,
+      "recall_at_5": 1.0,
+      "citation_present": true,
+      "confidence": "Medium",
+      "evidence_count": 5
+    },
+    {
+      "question": "How does GraphRAG use graph structure for global sensemaking?",
+      "expected_paper_ids": [
+        "2404.16130"
+      ],
+      "retrieved_paper_ids_at_3": [
+        "2404.16130",
+        "2404.16130",
+        "2404.16130"
+      ],
+      "retrieved_paper_ids_at_5": [
+        "2404.16130",
+        "2404.16130",
+        "2404.16130",
+        "2404.16130",
+        "2404.16130"
+      ],
+      "recall_at_3": 1.0,
+      "recall_at_5": 1.0,
+      "citation_present": true,
+      "confidence": "Medium",
+      "evidence_count": 5
+    },
+    {
+      "question": "What does RAGAS evaluate in retrieval augmented generation systems?",
+      "expected_paper_ids": [
+        "2309.15217"
+      ],
+      "retrieved_paper_ids_at_3": [
+        "2309.15217",
+        "2309.15217",
+        "2404.16130"
+      ],
+      "retrieved_paper_ids_at_5": [
+        "2309.15217",
+        "2309.15217",
+        "2404.16130",
+        "2005.11401",
+        "2404.16130"
+      ],
+      "recall_at_3": 1.0,
+      "recall_at_5": 1.0,
+      "citation_present": true,
+      "confidence": "Medium",
+      "evidence_count": 5
+    },
+    {
+      "question": "Which paper discusses answer faithfulness and citation-style evaluation?",
+      "expected_paper_ids": [
+        "2309.15217"
+      ],
+      "retrieved_paper_ids_at_3": [
+        "2309.15217",
+        "2404.16130",
+        "2309.15217"
+      ],
+      "retrieved_paper_ids_at_5": [
+        "2309.15217",
+        "2404.16130",
+        "2309.15217",
+        "2309.15217",
+        "2309.15217"
+      ],
+      "recall_at_3": 1.0,
+      "recall_at_5": 1.0,
+      "citation_present": true,
+      "confidence": "Medium",
+      "evidence_count": 5
+    },
+    {
+      "question": "Which paper introduced retrieval-augmented generation for knowledge-intensive NLP?",
+      "expected_paper_ids": [
+        "2005.11401"
+      ],
+      "retrieved_paper_ids_at_3": [
+        "2005.11401",
+        "2309.15217",
+        "2309.15217"
+      ],
+      "retrieved_paper_ids_at_5": [
+        "2005.11401",
+        "2309.15217",
+        "2309.15217",
+        "2404.16130",
+        "2404.16130"
+      ],
+      "recall_at_3": 1.0,
+      "recall_at_5": 1.0,
+      "citation_present": true,
+      "confidence": "High",
+      "evidence_count": 5
+    },
+    {
+      "question": "Which paper explains graph-based retrieval augmented generation?",
+      "expected_paper_ids": [
+        "2404.16130"
+      ],
+      "retrieved_paper_ids_at_3": [
+        "2404.16130",
+        "2404.16130",
+        "2309.15217"
+      ],
+      "retrieved_paper_ids_at_5": [
+        "2404.16130",
+        "2404.16130",
+        "2309.15217",
+        "2404.16130",
+        "2404.16130"
+      ],
+      "recall_at_3": 1.0,
+      "recall_at_5": 1.0,
+      "citation_present": true,
+      "confidence": "Medium",
+      "evidence_count": 5
+    }
+  ]
+}

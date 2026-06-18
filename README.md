@@ -172,7 +172,30 @@ The MVP includes lightweight evaluation helpers for:
 - Citation presence in generated answers.
 - Insufficient-evidence behavior when retrieval returns no useful chunks.
 
-Demo questions live in `reports/demo_queries.md`. The evaluation method is documented in `reports/evaluation_report.md`.
+The current real-paper evaluation uses three arXiv PDFs:
+
+| paper id | paper | pages | chunks |
+| --- | --- | ---: | ---: |
+| `2005.11401` | Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks | 19 | 20 |
+| `2404.16130` | From Local to Global: A Graph RAG Approach to Query-Focused Summarization | 26 | 31 |
+| `2309.15217` | Ragas: Automated Evaluation of Retrieval Augmented Generation | 8 | 10 |
+
+Latest reproducible run:
+
+| metric | result |
+| --- | ---: |
+| Evaluation questions | 6 |
+| Average Recall@3 | 1.00 |
+| Average Recall@5 | 1.00 |
+| Citation coverage | 6/6 |
+
+Run the evaluation yourself:
+
+```bash
+python scripts/run_real_paper_evaluation.py --embedding-backend sentence-transformer
+```
+
+Demo questions live in `reports/demo_queries.md`. The evaluation method and real-paper results are documented in `reports/evaluation_report.md` and `reports/real_paper_evaluation.md`.
 
 ## Tests
 

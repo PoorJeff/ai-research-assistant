@@ -23,6 +23,45 @@ Each answer is checked for:
 - refusal or low-confidence behavior when no evidence is retrieved,
 - obvious claims that go beyond retrieved context.
 
-## Current MVP Status
+## Real Paper Run
 
-The repository ships the evaluation helpers and a set of ten demo questions. After indexing a real paper set, run the demo questions and record observed Recall@3, Recall@5, citation coverage, and unsupported-claim notes in this file.
+A reproducible real-paper run is available in `reports/real_paper_evaluation.md` and `reports/real_paper_evaluation.json`.
+
+Configuration:
+
+- Corpus: 3 real arXiv PDFs.
+- Papers:
+  - `2005.11401`: Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks.
+  - `2404.16130`: From Local to Global: A Graph RAG Approach to Query-Focused Summarization.
+  - `2309.15217`: Ragas: Automated Evaluation of Retrieval Augmented Generation.
+- PDF parser: PyMuPDF.
+- Chunking: 700 words with 120-word overlap.
+- Embedding model: `sentence-transformers/all-MiniLM-L6-v2`.
+- LLM provider: deterministic `mock` client, so this run evaluates retrieval and citation formatting rather than qualitative answer fluency.
+
+Results from the latest run:
+
+| metric | result |
+| --- | ---: |
+| Papers parsed | 3 |
+| Total pages parsed | 53 |
+| Total chunks indexed | 61 |
+| Evaluation questions | 6 |
+| Average Recall@3 | 1.00 |
+| Average Recall@5 | 1.00 |
+| Citation coverage | 6/6 |
+
+This moves the project beyond a UI demo: the retrieval layer has been exercised on actual academic PDFs, and the answer pipeline consistently returns numbered evidence for the evaluated questions.
+
+## Reproducing The Evaluation
+
+Run:
+
+```bash
+python scripts/run_real_paper_evaluation.py --embedding-backend sentence-transformer
+```
+
+The script downloads PDFs into `data/papers/real_demo/`, which is ignored by Git, then writes:
+
+- `reports/real_paper_evaluation.md`
+- `reports/real_paper_evaluation.json`

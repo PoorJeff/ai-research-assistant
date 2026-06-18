@@ -14,6 +14,9 @@ venv/
 data/papers/*.pdf
 data/papers/*.txt
 data/papers/*.csv
+data/papers/**/*.pdf
+data/papers/**/*.txt
+data/papers/**/*.csv
 vectorstore/*
 !vectorstore/.gitkeep
 reports/generated/
