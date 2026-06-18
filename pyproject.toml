@@ -1,0 +1,28 @@
+[project]
+name = "ai-research-assistant"
+version = "0.1.0"
+description = "Local-first AI research assistant for literature search, PDF ingestion, and evidence-based RAG Q&A."
+requires-python = ">=3.10"
+dependencies = [
+  "arxiv>=2.1.3",
+  "chromadb>=0.5.0",
+  "pandas>=2.2.0",
+  "PyMuPDF>=1.24.0",
+  "requests>=2.32.0",
+  "sentence-transformers>=3.0.0",
+  "streamlit>=1.36.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.2.0",
+  "ruff>=0.5.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
