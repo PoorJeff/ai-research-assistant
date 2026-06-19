@@ -13,6 +13,7 @@ This project is built as a portfolio-grade AI application rather than a thin cha
 
 - Product overview dashboard with runtime, index, and benchmark status.
 - Search arXiv papers and export metadata to CSV.
+- Import selected arXiv PDFs directly from search results and rebuild the vector index.
 - Upload research PDFs and extract page-aware text with PyMuPDF.
 - Clean and chunk paper text while preserving source metadata.
 - Build a local vector index with ChromaDB or an in-memory store.
@@ -29,9 +30,9 @@ This is best read as a strong local-first research workflow and portfolio projec
 
 | dimension | score | note |
 | --- | ---: | --- |
-| Portfolio readiness | 89/100 | Complete pipeline, tests, CI, screenshots, and reproducible real-paper evaluation. |
-| End-user product readiness | 76/100 | Useful local workflow with clearer status and benchmark visibility; still needs OCR, account-free packaging, and richer answer-quality evaluation. |
-| Technical depth | 90/100 | Modular RAG architecture with page-aware chunks, swappable embeddings, vector stores, and LLM providers. |
+| Portfolio readiness | 92/100 | Complete pipeline, one-click paper import, tests, CI, Docker, screenshots, and reproducible real-paper evaluation. |
+| End-user product readiness | 82/100 | Useful local workflow with clearer status, benchmark visibility, and repeatable launch path; still needs OCR and richer answer-quality evaluation. |
+| Technical depth | 91/100 | Modular RAG architecture with page-aware chunks, swappable embeddings, vector stores, LLM providers, and tested ingestion utilities. |
 
 The product polish added on top of the MVP focuses on the first-run experience: the app opens on an Overview page that exposes the active library state, runtime configuration, and latest real-paper benchmark before the user starts searching or uploading PDFs.
 
@@ -46,6 +47,10 @@ The app opens with current workspace status and the latest real-paper evaluation
 ### arXiv Search
 
 ![Search papers](docs/assets/screenshots/search-papers.png)
+
+### One-Click arXiv PDF Import
+
+![arXiv import](docs/assets/screenshots/arxiv-import.png)
 
 ### PDF Upload And Sample Indexing
 
@@ -81,6 +86,13 @@ Open the app at:
 http://localhost:8501
 ```
 
+### Docker
+
+```bash
+docker build -t ai-research-assistant .
+docker run --rm -p 8501:8501 ai-research-assistant
+```
+
 ## One-Minute Demo
 
 1. Open the app.
@@ -91,6 +103,15 @@ http://localhost:8501
 6. Inspect the `Answer`, `Evidence`, `Confidence`, and retrieved chunks.
 
 The built-in sample demo uses a tiny in-memory index so the RAG flow can be tested before uploading real PDFs.
+
+## Real Paper Workflow
+
+1. Go to `Search Papers`.
+2. Search for an arXiv topic.
+3. Expand `Import PDFs from these results`.
+4. Select one or more papers.
+5. Click `Download, extract, and index selected papers`.
+6. Go to `Ask Questions` and ask against the newly indexed PDFs.
 
 ## System Architecture
 
@@ -110,14 +131,15 @@ flowchart LR
 ## Pipeline
 
 1. `arxiv_search.py` queries arXiv and normalizes paper metadata.
-2. `pdf_loader.py` extracts page-level text from uploaded PDFs.
-3. `text_cleaning.py` normalizes PDF text artifacts.
-4. `chunking.py` splits text into overlapping source-aware chunks.
-5. `embeddings.py` creates sentence-transformer or hash embeddings.
-6. `vector_store.py` stores and retrieves chunks with ChromaDB or memory.
-7. `rag_pipeline.py` retrieves top-k chunks and builds evidence-backed answers.
-8. `summarizer.py` and `paper_compare.py` produce structured research outputs.
-9. `evaluation.py` supports Recall@k and citation-presence checks.
+2. `paper_ingestion.py` downloads selected arXiv PDFs and converts them into source-aware chunks.
+3. `pdf_loader.py` extracts page-level text from uploaded or downloaded PDFs.
+4. `text_cleaning.py` normalizes PDF text artifacts.
+5. `chunking.py` splits text into overlapping source-aware chunks.
+6. `embeddings.py` creates sentence-transformer or hash embeddings.
+7. `vector_store.py` stores and retrieves chunks with ChromaDB or memory.
+8. `rag_pipeline.py` retrieves top-k chunks and builds evidence-backed answers.
+9. `summarizer.py` and `paper_compare.py` produce structured research outputs.
+10. `evaluation.py` supports Recall@k and citation-presence checks.
 
 ## Project Structure
 
@@ -135,6 +157,7 @@ ai-research-assistant/
 │   ├── llm_client.py
 │   ├── models.py
 │   ├── paper_compare.py
+│   ├── paper_ingestion.py
 │   ├── pdf_loader.py
 │   ├── product_metrics.py
 │   ├── prompts.py
@@ -145,6 +168,7 @@ ai-research-assistant/
 ├── docs/
 │   ├── model_card.md
 │   ├── prompt_design.md
+│   ├── resume_entry.md
 │   └── system_design.md
 ├── reports/
 │   ├── demo_queries.md
@@ -239,7 +263,9 @@ Current coverage focuses on:
 - config defaults,
 - arXiv metadata conversion,
 - PDF loading,
+- arXiv PDF ingestion,
 - chunking and overlap,
+- Docker packaging files,
 - vector retrieval,
 - prompt and LLM client behavior,
 - RAG answer evidence formatting,
@@ -261,10 +287,11 @@ Current coverage focuses on:
 - Add Semantic Scholar metadata.
 - Add BibTeX or Zotero export.
 - Add citation graph exploration.
-- Add Docker packaging.
 - Add richer retrieval and answer-quality evaluation.
 - Add screenshots and metrics from a larger real-paper benchmark.
 
 ## CV Description
 
-Built an AI research assistant for literature search, PDF parsing, structured paper summarisation, multi-paper comparison, and retrieval-augmented question answering. Implemented chunking, embedding, ChromaDB-based retrieval, evidence-grounded answer generation, and lightweight evaluation with Recall@k and manually curated research questions.
+Built an AI research assistant for literature search, one-click arXiv PDF ingestion, PDF parsing, structured paper summarisation, multi-paper comparison, and retrieval-augmented question answering. Implemented chunking, embedding, ChromaDB-based retrieval, evidence-grounded answer generation, Docker packaging, CI, and lightweight evaluation with Recall@k and manually curated research questions.
+
+Resume-ready bullets are available in `docs/resume_entry.md`.

@@ -16,6 +16,7 @@ from src.evaluation import answer_has_citations, compute_recall_at_k
 from src.llm_client import create_llm_client
 from src.models import TextChunk
 from src.paper_compare import compare_papers
+from src.paper_ingestion import PaperIngestionError, ingest_papers_from_search
 from src.pdf_loader import PdfLoadError, load_pdf_pages
 from src.product_metrics import load_real_paper_evaluation, summarize_real_paper_evaluation
 from src.rag_pipeline import RagPipeline
@@ -36,6 +37,7 @@ def init_state() -> None:
         "library_mode": "empty",
         "active_embedding_backend": None,
         "active_store_backend": None,
+        "last_import_records": [],
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -77,6 +79,7 @@ def reset_workspace_state() -> None:
     st.session_state.library_mode = "empty"
     st.session_state.active_embedding_backend = None
     st.session_state.active_store_backend = None
+    st.session_state.last_import_records = []
 
 
 def library_status_label() -> tuple[str, str]:
@@ -220,7 +223,11 @@ def render_overview_page(settings: Settings, embedding_backend: str, store_backe
     render_real_evaluation_summary()
 
 
-def render_search_page() -> None:
+def paper_option_label(paper) -> str:
+    return f"{paper.paper_id} | {paper.title}"
+
+
+def render_search_page(settings: Settings, embedding_backend: str, store_backend: str) -> None:
     st.subheader("Search Papers")
     query = st.text_input("Research topic", value="retrieval augmented generation")
     col_a, col_b = st.columns([1, 1])
@@ -248,6 +255,79 @@ def render_search_page() -> None:
             mime="text/csv",
         )
 
+        with st.expander("Import PDFs from these results"):
+            st.caption("Download selected arXiv PDFs, extract text, chunk them, and rebuild the index.")
+            labels = [paper_option_label(paper) for paper in st.session_state.papers]
+            label_to_paper = dict(zip(labels, st.session_state.papers, strict=True))
+            selected_labels = st.multiselect(
+                "Papers to import",
+                labels,
+                default=labels[: min(1, len(labels))],
+            )
+            col_a, col_b = st.columns([1, 1])
+            with col_a:
+                chunk_size = st.number_input(
+                    "Import chunk size (words)",
+                    min_value=100,
+                    max_value=1200,
+                    value=700,
+                    step=50,
+                )
+            with col_b:
+                chunk_overlap = st.number_input(
+                    "Import chunk overlap (words)",
+                    min_value=0,
+                    max_value=300,
+                    value=120,
+                    step=20,
+                )
+
+            if st.button("Download, extract, and index selected papers", disabled=not selected_labels):
+                selected_papers = [label_to_paper[label] for label in selected_labels]
+                try:
+                    with st.spinner("Downloading PDFs and rebuilding the vector index..."):
+                        new_chunks, records = ingest_papers_from_search(
+                            selected_papers,
+                            chunk_size_words=int(chunk_size),
+                            chunk_overlap_words=int(chunk_overlap),
+                        )
+                        combined_chunks = [*st.session_state.chunks, *new_chunks]
+                        store = build_vector_store(settings, embedding_backend, store_backend)
+                        store.add_chunks(combined_chunks)
+
+                    st.session_state.chunks = combined_chunks
+                    st.session_state.vector_store = store
+                    st.session_state.last_answer = None
+                    st.session_state.library_mode = "arxiv_import"
+                    st.session_state.active_embedding_backend = embedding_backend
+                    st.session_state.active_store_backend = store_backend
+                    st.session_state.last_import_records = records
+                    st.success(
+                        f"Imported {len(records)} papers and indexed {len(combined_chunks)} total chunks."
+                    )
+                except (PaperIngestionError, PdfLoadError, ValueError) as exc:
+                    st.error(f"Import failed: {exc}")
+                except Exception as exc:
+                    st.error(f"Indexing failed: {exc}")
+
+            if st.session_state.last_import_records:
+                st.dataframe(
+                    pd.DataFrame(
+                        [
+                            {
+                                "paper_id": record.paper_id,
+                                "title": record.title,
+                                "pages": record.pages,
+                                "chunks": record.chunks,
+                                "pdf_path": record.pdf_path,
+                            }
+                            for record in st.session_state.last_import_records
+                        ]
+                    ),
+                    use_container_width=True,
+                    hide_index=True,
+                )
+
 
 def render_upload_page(settings: Settings, embedding_backend: str, store_backend: str) -> None:
     st.subheader("Upload PDFs")
@@ -259,6 +339,7 @@ def render_upload_page(settings: Settings, embedding_backend: str, store_backend
         st.session_state.library_mode = "sample_demo"
         st.session_state.active_embedding_backend = "Hash demo"
         st.session_state.active_store_backend = "In-memory"
+        st.session_state.last_import_records = []
         st.success("Loaded sample chunks and built a fast in-memory demo index.")
 
     uploaded_files = st.file_uploader("Upload one or more research PDFs", type=["pdf"], accept_multiple_files=True)
@@ -299,6 +380,7 @@ def render_upload_page(settings: Settings, embedding_backend: str, store_backend
         st.session_state.library_mode = "uploaded_chunks"
         st.session_state.active_embedding_backend = None
         st.session_state.active_store_backend = None
+        st.session_state.last_import_records = []
         st.success(f"Added {len(new_chunks)} chunks. Total chunks: {len(st.session_state.chunks)}.")
 
     if st.button("Build / rebuild vector index", disabled=not st.session_state.chunks):
@@ -431,7 +513,7 @@ def main() -> None:
     with tabs[0]:
         render_overview_page(settings, embedding_backend, store_backend)
     with tabs[1]:
-        render_search_page()
+        render_search_page(settings, embedding_backend, store_backend)
     with tabs[2]:
         render_upload_page(settings, embedding_backend, store_backend)
     with tabs[3]:
